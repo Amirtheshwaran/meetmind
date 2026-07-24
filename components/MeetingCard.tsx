@@ -1,8 +1,10 @@
+'use client';
 import type { Meeting, MeetingSummary } from '@/lib/db';
 import Link from 'next/link';
 
 interface MeetingCardProps {
   meeting: Meeting & { meeting_summaries?: MeetingSummary | null };
+  onDelete?: (id: string) => void;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -13,7 +15,7 @@ const STATUS_LABEL: Record<string, string> = {
   ERROR: 'Error',
 };
 
-export default function MeetingCard({ meeting }: MeetingCardProps) {
+export default function MeetingCard({ meeting, onDelete }: MeetingCardProps) {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-US', {
       month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -29,11 +31,31 @@ export default function MeetingCard({ meeting }: MeetingCardProps) {
   const summary = meeting.meeting_summaries;
   const statusClass = `badge badge-${meeting.status.toLowerCase()}`;
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (confirm(`Are you sure you want to delete "${meeting.title}"?`)) {
+      onDelete?.(meeting.id);
+    }
+  };
+
   const inner = (
-    <div className="card meeting-card">
+    <div className="card meeting-card relative">
       <div className="meeting-card-meta">
         <span className={statusClass}>{STATUS_LABEL[meeting.status]}</span>
-        <span className="meeting-card-date">{formatDate(meeting.created_at)}</span>
+        <div className="flex items-center gap-2">
+          <span className="meeting-card-date">{formatDate(meeting.created_at)}</span>
+          {onDelete && (
+            <button
+              onClick={handleDelete}
+              className="btn-ghost p-1 text-muted hover:text-red text-xs"
+              title="Delete meeting"
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       <div>
@@ -42,7 +64,7 @@ export default function MeetingCard({ meeting }: MeetingCardProps) {
           <p className="meeting-card-preview">{summary.overview}</p>
         )}
         {meeting.status === 'ERROR' && meeting.error_message && (
-          <p className="text-sm" style={{ color: 'var(--red)' }}>
+          <p className="text-sm text-red">
             ⚠ {meeting.error_message}
           </p>
         )}
@@ -68,3 +90,4 @@ export default function MeetingCard({ meeting }: MeetingCardProps) {
 
   return <div style={{ cursor: 'default' }}>{inner}</div>;
 }
+

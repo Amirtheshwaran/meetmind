@@ -277,3 +277,93 @@ export async function toggleActionItem(id: string, completed: boolean): Promise<
   if (error) throw new Error(error.message);
 }
 
+export async function addActionItem(
+  meetingId: string,
+  item: {
+    task: string;
+    assignee: string;
+    deadline?: string;
+    priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  }
+): Promise<ActionItem> {
+  const newItem: ActionItem = {
+    id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11),
+    meeting_id: meetingId,
+    task: item.task,
+    assignee: item.assignee || 'Unassigned',
+    deadline: item.deadline || null,
+    priority: item.priority || 'MEDIUM',
+    completed: false,
+    created_at: new Date().toISOString(),
+  };
+
+  if (isLocalMode()) {
+    const db = readLocalDB();
+    db.action_items.push(newItem);
+    writeLocalDB(db);
+    return newItem;
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('action_items')
+    .insert({
+      meeting_id: meetingId,
+      task: item.task,
+      assignee: item.assignee || 'Unassigned',
+      deadline: item.deadline || null,
+      priority: item.priority || 'MEDIUM',
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as ActionItem;
+}
+
+export async function deleteActionItem(id: string): Promise<void> {
+  if (isLocalMode()) {
+    const db = readLocalDB();
+    db.action_items = db.action_items.filter((a: any) => a.id !== id);
+    writeLocalDB(db);
+    return;
+  }
+  const { error } = await supabaseAdmin.from('action_items').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateMeetingTitle(id: string, title: string): Promise<void> {
+  if (isLocalMode()) {
+    const db = readLocalDB();
+    const idx = db.meetings.findIndex((m: any) => m.id === id);
+    if (idx !== -1) {
+      db.meetings[idx].title = title;
+      writeLocalDB(db);
+    }
+    return;
+  }
+  const { error } = await supabaseAdmin.from('meetings').update({ title }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteMeeting(id: string): Promise<void> {
+  if (isLocalMode()) {
+    const db = readLocalDB();
+    const meeting = db.meetings.find((m: any) => m.id === id);
+    if (meeting && meeting.storage_path) {
+      const localAudioPath = path.join(process.cwd(), 'public', 'uploads', meeting.storage_path);
+      if (fs.existsSync(localAudioPath)) {
+        try { fs.unlinkSync(localAudioPath); } catch {}
+      }
+    }
+    db.meetings = db.meetings.filter((m: any) => m.id !== id);
+    db.meeting_summaries = db.meeting_summaries.filter((s: any) => s.meeting_id !== id);
+    db.action_items = db.action_items.filter((a: any) => a.meeting_id !== id);
+    writeLocalDB(db);
+    return;
+  }
+
+  const { error } = await supabaseAdmin.from('meetings').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+

@@ -1,6 +1,5 @@
 'use client';
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase-client';
 
 interface RecorderProps {
   onComplete: (meetingId: string) => void;
@@ -9,10 +8,12 @@ interface RecorderProps {
 }
 
 export default function Recorder({ onComplete, onClose, meetingTitle }: RecorderProps) {
+  const [mode, setMode] = useState<'mic' | 'upload'>('mic');
   const [state, setState] = useState<'idle' | 'recording' | 'uploading' | 'done'>('idle');
   const [elapsed, setElapsed] = useState(0);
   const [uploadPct, setUploadPct] = useState(0);
   const [error, setError] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -21,6 +22,7 @@ export default function Recorder({ onComplete, onClose, meetingTitle }: Recorder
   const animFrameRef = useRef<number>(0);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Waveform visualizer
   const drawWaveform = useCallback(() => {
@@ -36,13 +38,13 @@ export default function Recorder({ onComplete, onClose, meetingTitle }: Recorder
       animFrameRef.current = requestAnimationFrame(draw);
       analyser.getByteTimeDomainData(dataArray);
 
-      ctx.fillStyle = '#111118';
+      ctx.fillStyle = '#09090b';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.lineWidth = 2;
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-      gradient.addColorStop(0, '#6c63ff');
-      gradient.addColorStop(1, '#a855f7');
+      gradient.addColorStop(0, '#6366f1');
+      gradient.addColorStop(1, '#10b981');
       ctx.strokeStyle = gradient;
       ctx.beginPath();
 
@@ -66,7 +68,6 @@ export default function Recorder({ onComplete, onClose, meetingTitle }: Recorder
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      // Set up analyser for waveform
       const audioCtx = new AudioContext();
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
@@ -75,7 +76,6 @@ export default function Recorder({ onComplete, onClose, meetingTitle }: Recorder
       analyserRef.current = analyser;
       drawWaveform();
 
-      // Set up MediaRecorder
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : 'audio/webm';
@@ -92,7 +92,7 @@ export default function Recorder({ onComplete, onClose, meetingTitle }: Recorder
 
       timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
     } catch (err) {
-      setError('Microphone access denied. Please allow microphone access.');
+      setError('Microphone access denied. Please allow microphone access or upload an audio file.');
     }
   };
 
@@ -113,22 +113,31 @@ export default function Recorder({ onComplete, onClose, meetingTitle }: Recorder
     setState('uploading');
   };
 
-  const uploadAudio = async (blob: Blob) => {
+  const handleFileUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      setError('Please select an audio file to upload');
+      return;
+    }
+    setState('uploading');
+    await uploadAudio(selectedFile);
+  };
+
+  const uploadAudio = async (blobOrFile: Blob | File) => {
     try {
-      // 1. Get presigned upload URL + create meeting
+      setError('');
       const res = await fetch('/api/meetings/presign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: meetingTitle }),
       });
 
-      if (!res.ok) throw new Error('Failed to get upload URL');
-      const { meetingId, uploadUrl, storagePath } = await res.json();
+      if (!res.ok) throw new Error('Failed to create meeting record');
+      const { meetingId, uploadUrl } = await res.json();
 
-      // 2. Upload directly to Supabase Storage via signed URL
       const xhr = new XMLHttpRequest();
       xhr.open('PUT', uploadUrl);
-      xhr.setRequestHeader('Content-Type', 'audio/webm');
+      xhr.setRequestHeader('Content-Type', blobOrFile.type || 'audio/webm');
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) setUploadPct(Math.round((e.loaded / e.total) * 100));
@@ -137,7 +146,7 @@ export default function Recorder({ onComplete, onClose, meetingTitle }: Recorder
       await new Promise<void>((resolve, reject) => {
         xhr.onload = () => (xhr.status < 300 ? resolve() : reject(new Error(`Upload failed: ${xhr.status}`)));
         xhr.onerror = () => reject(new Error('Network error during upload'));
-        xhr.send(blob);
+        xhr.send(blobOrFile);
       });
 
       setState('done');
@@ -154,60 +163,125 @@ export default function Recorder({ onComplete, onClose, meetingTitle }: Recorder
     return `${m}:${sec}`;
   };
 
-  // Draw idle waveform on canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
-    ctx.fillStyle = '#111118';
+    ctx.fillStyle = '#09090b';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = '#2a2a3d';
+    ctx.strokeStyle = '#27272a';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(0, canvas.height / 2);
     ctx.lineTo(canvas.width, canvas.height / 2);
     ctx.stroke();
-  }, []);
+  }, [mode]);
 
   return (
     <div className="recorder-wrapper">
-      <canvas ref={canvasRef} className="recorder-canvas" width={480} height={80} />
-
-      {state === 'recording' && (
-        <div className="flex items-center gap-2">
-          <div className="recording-indicator">
-            <div className="recording-dot" />
-          </div>
-          <span className="text-sm" style={{ color: 'var(--red)' }}>Recording</span>
-        </div>
-      )}
-
-      <div className="recorder-timer">{formatTime(elapsed)}</div>
-
-      {error && (
-        <p className="text-sm" style={{ color: 'var(--red)', textAlign: 'center' }}>{error}</p>
-      )}
-
+      {/* Mode Tabs */}
       {state === 'idle' && (
-        <div className="recorder-controls">
-          <button className="record-btn record-btn-start" onClick={startRecording} title="Start Recording">
-            🎙
+        <div className="flex gap-2 mb-2">
+          <button
+            className={`btn btn-sm ${mode === 'mic' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => { setMode('mic'); setError(''); }}
+          >
+            🎙 Record Microphone
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+          <button
+            className={`btn btn-sm ${mode === 'upload' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => { setMode('upload'); setError(''); }}
+          >
+            📁 Upload Audio File
+          </button>
         </div>
       )}
 
-      {state === 'recording' && (
-        <div className="recorder-controls">
-          <button className="record-btn record-btn-stop" onClick={stopRecording} title="Stop & Process">
-            ⏹
-          </button>
+      {mode === 'mic' ? (
+        <>
+          <canvas ref={canvasRef} className="recorder-canvas" width={480} height={80} />
+
+          {state === 'recording' && (
+            <div className="flex items-center gap-2">
+              <div className="recording-indicator">
+                <div className="recording-dot" />
+              </div>
+              <span className="text-sm text-red font-semibold">Live Recording</span>
+            </div>
+          )}
+
+          <div className="recorder-timer">{formatTime(elapsed)}</div>
+
+          {error && <p className="text-sm text-red text-center">{error}</p>}
+
+          {state === 'idle' && (
+            <div className="recorder-controls">
+              <button className="record-btn record-btn-start" onClick={startRecording} title="Start Recording">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                  <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+            </div>
+          )}
+
+          {state === 'recording' && (
+            <div className="recorder-controls">
+              <button className="record-btn record-btn-stop" onClick={stopRecording} title="Stop & Process">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="5" y="5" width="14" height="14" rx="2" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        /* Upload Mode */
+        <div className="w-full flex flex-col gap-4">
+          <div
+            className="file-drop-zone"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*,.mp3,.wav,.m4a,.webm,.ogg"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setSelectedFile(file);
+              }}
+            />
+            <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <p className="text-sm font-semibold">
+              {selectedFile ? selectedFile.name : 'Click to choose or drag an audio file here'}
+            </p>
+            <p className="text-xs text-muted">Supports MP3, WAV, M4A, WEBM, OGG</p>
+          </div>
+
+          {error && <p className="text-sm text-red text-center">{error}</p>}
+
+          {state === 'idle' && (
+            <div className="flex gap-2 justify-end">
+              <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+              <button
+                className="btn btn-primary"
+                onClick={handleFileUpload}
+                disabled={!selectedFile}
+              >
+                Upload & Process →
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {state === 'uploading' && (
         <div className="w-full flex flex-col gap-2">
-          <div className="text-sm text-secondary" style={{ textAlign: 'center' }}>
+          <div className="text-sm text-secondary text-center">
             Uploading audio… {uploadPct}%
           </div>
           <div className="upload-bar">
@@ -217,10 +291,11 @@ export default function Recorder({ onComplete, onClose, meetingTitle }: Recorder
       )}
 
       {state === 'done' && (
-        <p className="text-sm" style={{ color: 'var(--green)', textAlign: 'center' }}>
-          ✓ Upload complete! Starting AI processing…
+        <p className="text-sm text-green text-center">
+          ✓ Upload complete! Starting processing…
         </p>
       )}
     </div>
   );
 }
+
