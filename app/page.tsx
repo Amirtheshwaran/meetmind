@@ -123,28 +123,82 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Analytics & Metrics Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="stats-card">
-            <span className="stats-label">Total Meetings</span>
-            <span className="stats-value">{stats.totalCount}</span>
+        {/* Top Metrics Row (3 Columns) */}
+        <div className="metrics-row-grid">
+          {/* Card 1: Total Meetings */}
+          <div className="metric-card-box">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="metric-icon-sq">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="metric-label-text">Total Meetings</div>
+                  <div className="metric-val-num">{stats.totalCount}</div>
+                </div>
+              </div>
+              <div className="text-secondary text-sm cursor-pointer" title="Settings">⚙️</div>
+            </div>
           </div>
-          <div className="stats-card">
-            <span className="stats-label">Total Recorded Time</span>
-            <span className="stats-value">{stats.totalMins} mins</span>
+
+          {/* Card 2: Total Recorded Time */}
+          <div className="metric-card-box">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="metric-icon-sq">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="metric-label-text">Total Recorded Time</div>
+                  <div className="metric-val-num">{stats.totalMins} mins</div>
+                </div>
+              </div>
+              <div className="circle-check-badge">✓</div>
+            </div>
           </div>
-          <div className="stats-card">
-            <span className="stats-label">Action Items Completed</span>
-            <div className="flex items-center justify-between mt-1">
-              <span className="stats-value">
-                {stats.completedTasks}/{stats.totalTasks}
-              </span>
-              <span className="text-xs text-secondary">
-                {stats.totalTasks ? Math.round((stats.completedTasks / stats.totalTasks) * 100) : 0}%
-              </span>
+
+          {/* Card 3: Action Items Completed */}
+          <div className="metric-card-box flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-3">
+                  <div className="metric-icon-sq">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="metric-label-text">Action Items Completed</div>
+                    <div className="metric-val-num">
+                      {stats.completedTasks}/{stats.totalTasks}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-xs text-secondary font-medium">
+                  {stats.totalTasks ? `${Math.round((stats.completedTasks / stats.totalTasks) * 100)}%` : '0%'}
+                </div>
+              </div>
+            </div>
+
+            {/* Horizontal progress bar */}
+            <div className="progress-track-bar">
+              <div
+                className="progress-fill-bar"
+                style={{
+                  width: stats.totalTasks
+                    ? `${(stats.completedTasks / stats.totalTasks) * 100}%`
+                    : '0%',
+                }}
+              />
             </div>
           </div>
         </div>
+
 
         {/* Search & Status Filter Controls */}
         <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
