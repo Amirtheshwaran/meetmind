@@ -37,3 +37,54 @@ export function chunkTranscript(text: string, maxTokens = 28000): string[] {
   if (current.trim()) chunks.push(current.trim());
   return chunks;
 }
+
+export interface SpeakerTurn {
+  timestamp?: string;
+  speaker: string;
+  text: string;
+}
+
+/** Parse transcript into structured speaker turns with timestamps and names */
+export function parseSpeakerTranscript(raw: string): SpeakerTurn[] {
+  if (!raw) return [];
+
+  const lines = raw.split('\n').filter((l) => l.trim().length > 0);
+  const turns: SpeakerTurn[] = [];
+
+  // Regex patterns to match timestamp and speaker name:
+  // e.g. "[00:15] Amirthesh: hello" or "Amirthesh: hello" or "[00:15] hello"
+  const linePattern = /^(?:\[(\d{2}:\d{2}(?::\d{2})?)\]\s*)?(?:([^:\n]+):\s*)?(.*)$/;
+
+  let lastSpeaker = 'Speaker 1';
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const match = trimmed.match(linePattern);
+
+    if (match) {
+      const [, timestamp, speakerMatch, textContent] = match;
+      if (speakerMatch && textContent) {
+        lastSpeaker = speakerMatch.trim();
+        turns.push({
+          timestamp: timestamp || undefined,
+          speaker: lastSpeaker,
+          text: textContent.trim(),
+        });
+      } else if (textContent) {
+        turns.push({
+          timestamp: timestamp || undefined,
+          speaker: lastSpeaker,
+          text: textContent.trim(),
+        });
+      }
+    } else {
+      turns.push({
+        speaker: lastSpeaker,
+        text: trimmed,
+      });
+    }
+  }
+
+  return turns.length > 0 ? turns : [{ speaker: 'Speaker 1', text: raw }];
+}
+

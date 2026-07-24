@@ -42,7 +42,12 @@ export async function transcribeAudio(storagePath: string): Promise<string> {
   if (!hasGroqKey()) {
     // Wait 2 seconds to simulate processing
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    return "This is a mock transcript of the recorded meeting. We discussed the launch of our new fullstack application, MeetMind. Amirthesh pointed out that the application should run 100% free with no credit card required. We decided to use a local JSON file-based database fallback and mock AI models to allow the developer to test the application immediately without signing up for external cloud services. The deadline for completing the initial local integration is by the end of today. Amirthesh will review the layout and then we will prepare the application for deployment to Vercel.";
+    return `[00:00] Amirthesh: Welcome everyone to today's product sync. Let's discuss the launch of MeetMind.
+[00:15] Sarah: Great to be here! The core recording and audio processing engine is performing really well.
+[00:34] Amirthesh: Excellent. We need to make sure the app supports full local offline execution with zero configuration.
+[00:50] Speaker 1: Absolutely. I have configured the local JSON storage fallback and speaker diarization UI.
+[01:12] Sarah: I will take the action item to finalize the documentation and review deployment settings for Vercel.
+[01:30] Amirthesh: Sounds like a solid plan. Thanks everyone!`;
   }
 
   // Groq expects a File-like object — create one from the buffer
