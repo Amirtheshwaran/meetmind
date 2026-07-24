@@ -15,7 +15,8 @@ The app supports a zero-configuration local mode (storing data in a local JSON d
 
 ## Tech Stack
 
-- **Frontend & Backend**: Next.js 14 (App Router & TS)
+- **Frontend & Backend**: Next.js 16 (App Router & TS)
+
 - **Database & Storage**: Supabase (Postgres & Storage) or Local file database fallback
 - **Transcription**: Groq API (`whisper-large-v3`)
 - **LLM Summarization**: Google Gemini API (`gemini-1.5-flash`)
