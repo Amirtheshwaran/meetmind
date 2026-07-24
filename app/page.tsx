@@ -109,79 +109,60 @@ export default function DashboardPage() {
 
   return (
     <main>
-      <div className="container">
-        {/* Header */}
-        <div className="page-header flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="page-title">Meeting Workspace</h1>
-            <p className="page-subtitle">
-              Record, transcribe, and track action items seamlessly
-            </p>
-          </div>
-          <button className="btn btn-primary btn-lg" onClick={startFlow}>
-            + New Meeting
-          </button>
-        </div>
+      <div className="container" style={{ paddingTop: '24px' }}>
+
 
         {/* Top Metrics Row (3 Columns) */}
         <div className="metrics-row-grid">
           {/* Card 1: Total Meetings */}
           <div className="metric-card-box">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <div className="metric-icon-sq">
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="metric-label-text">Total Meetings</div>
-                  <div className="metric-val-num">{stats.totalCount}</div>
-                </div>
+            <div className="metric-card-header">
+              <div className="metric-icon-sq">
+                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
               </div>
-              <div className="text-secondary text-sm cursor-pointer" title="Settings">⚙️</div>
+              <div className="metric-content">
+                <div className="metric-label-text">Total Meetings</div>
+                <div className="metric-val-num">{stats.totalCount}</div>
+              </div>
+              <div className="metric-right-icon" title="Settings">⚙️</div>
             </div>
           </div>
 
           {/* Card 2: Total Recorded Time */}
           <div className="metric-card-box">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <div className="metric-icon-sq">
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 6v6l4 2" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="metric-label-text">Total Recorded Time</div>
-                  <div className="metric-val-num">{stats.totalMins} mins</div>
-                </div>
+            <div className="metric-card-header">
+              <div className="metric-icon-sq">
+                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 6v6l4 2" />
+                </svg>
+              </div>
+              <div className="metric-content">
+                <div className="metric-label-text">Total Recorded Time</div>
+                <div className="metric-val-num">{stats.totalMins} mins</div>
               </div>
               <div className="circle-check-badge">✓</div>
             </div>
           </div>
 
           {/* Card 3: Action Items Completed */}
-          <div className="metric-card-box flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-3">
-                  <div className="metric-icon-sq">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="metric-label-text">Action Items Completed</div>
-                    <div className="metric-val-num">
-                      {stats.completedTasks}/{stats.totalTasks}
-                    </div>
-                  </div>
+          <div className="metric-card-box">
+            <div className="metric-card-header mb-2">
+              <div className="metric-icon-sq">
+                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="metric-content">
+                <div className="metric-label-text">Action Items Completed</div>
+                <div className="metric-val-num">
+                  {stats.completedTasks}/{stats.totalTasks}
                 </div>
-                <div className="text-xs text-secondary font-medium">
-                  {stats.totalTasks ? `${Math.round((stats.completedTasks / stats.totalTasks) * 100)}%` : '0%'}
-                </div>
+              </div>
+              <div className="text-xs text-secondary font-medium">
+                {stats.totalTasks ? `${Math.round((stats.completedTasks / stats.totalTasks) * 100)}%` : '0%'}
               </div>
             </div>
 
@@ -200,29 +181,50 @@ export default function DashboardPage() {
         </div>
 
 
+
         {/* Search & Status Filter Controls */}
-        <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
-          <div className="flex-1 min-w-[240px]">
+        <div className="search-filter-bar">
+          <div className="search-input-box">
+            <svg
+              className="search-icon-inside"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
             <input
               type="text"
-              className="input"
-              placeholder="Search meetings by title or topic..."
+              placeholder="Search meetings, transcripts, topics..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-2">
-            {['ALL', 'DONE', 'PROCESSING', 'ERROR'].map((st) => (
+          <div className="filter-chips-group">
+            {['ALL', 'DONE', 'PROCESSING', 'UPCOMING', 'DRAFTS', 'THIS_WEEK'].map((st) => (
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
                 className={`filter-chip ${statusFilter === st ? 'active' : ''}`}
               >
-                {st === 'ALL' ? 'All' : st.charAt(0) + st.slice(1).toLowerCase()}
+                {st === 'ALL'
+                  ? 'All'
+                  : st === 'THIS_WEEK'
+                  ? 'This week ⌄'
+                  : st === 'UPCOMING'
+                  ? 'Upcoming ⌄'
+                  : st === 'DRAFTS'
+                  ? 'Drafts ⌄'
+                  : st.charAt(0) + st.slice(1).toLowerCase()}
               </button>
             ))}
           </div>
         </div>
+
 
         {/* Active / In-Progress meetings */}
         {activeMeetings.length > 0 && (
